@@ -5,7 +5,7 @@ import {ApiError} from '../../../src/core/api_error';
 
 export default function DBFSFactory(cb: (name: string, obj: FileSystem[]) => void): void {
   function login(creds: DropboxTypes.DropboxOptions) {
-    const client = new Dropbox(creds);
+    const client = new Dropbox({...creds, fetch});
     client.usersGetCurrentAccount(undefined).then((res) => {
       return new Promise<DropboxFileSystem>((resolve, reject) => {
         console.debug(`Successfully connected to ${res.name.display_name}'s Dropbox.`);
