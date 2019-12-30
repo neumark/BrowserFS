@@ -8,12 +8,18 @@ export default function() {
   var exists: boolean;
   var doesNotExist: boolean;
 
-  fs.exists(f, function(y) {
-    exists = y;
-  });
-
-  fs.exists(f + '-NO', function(y) {
-    doesNotExist = y;
+  Promise.all([
+    new Promise((resolve, reject) => fs.exists(f, function(y) {
+      exists = y;
+      resolve(true);
+    })),
+    new Promise((resolve, reject) => fs.exists(f + '-NO', function(y) {
+      doesNotExist = y;
+      resolve(true);
+    }))
+  ]).then(() => {
+    assert.strictEqual(exists, true);
+    assert.strictEqual(doesNotExist, false);
   });
 
   if (fs.getRootFS().supportsSynch()) {
@@ -21,8 +27,4 @@ export default function() {
     assert(!fs.existsSync(f + '-NO'));
   }
 
-  process.on('exit', function() {
-    assert.strictEqual(exists, true);
-    assert.strictEqual(doesNotExist, false);
-  });
 };

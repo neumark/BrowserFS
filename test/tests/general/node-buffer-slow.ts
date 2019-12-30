@@ -40,14 +40,14 @@ export default function() {
   }*/
 
   // should work with number-coercible values
-  assert.strictEqual(new SlowBuffer('6').length, 6);
+  assert.strictEqual(new SlowBuffer(<any>'6').length, 6);
   assert.strictEqual(new SlowBuffer(<any> true).length, 1);
 
   // should create zero-length buffer if parameter is not a number
   assert.strictEqual(new (<any> SlowBuffer)().length, 0);
   assert.strictEqual(new SlowBuffer(NaN).length, 0);
   assert.strictEqual(new SlowBuffer(<any>{}).length, 0);
-  assert.strictEqual(new SlowBuffer('string').length, 0);
+  assert.strictEqual(new SlowBuffer(<any>'string').length, 0);
 
   // should throw with invalid length
   assert.throws(function() {

@@ -8,33 +8,42 @@ export default function() {
   var file = path.join(common.fixturesDir, 'a.js');
   var rootFS = fs.getRootFS();
   if (!rootFS.isReadOnly()) {
-    fs.open(file, 'a', 0o777, function(err, fd) {
-      if (err) throw err;
-
-      if (rootFS.supportsSynch()) {
-        fs.fdatasyncSync(fd);
-        successes++;
-
-        fs.fsyncSync(fd);
-        successes++;
-      }
-
-      fs.fdatasync(fd, function(err) {
-        if (err) throw err;
-        successes++;
-        fs.fsync(fd, function(err) {
-          if (err) throw err;
+    new Promise((resolve, reject) => fs.open(file, 'a', 0o777, (err, fd) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(fd);
+        }
+      })).then((fd:number) => {
+        // test sync
+        if (rootFS.supportsSynch()) {
+          fs.fdatasyncSync(fd);
           successes++;
-        });
-      });
-    });
-
-    process.on('exit', function() {
-      if (rootFS.supportsSynch()) {
-        assert.equal(4, successes);
-      } else {
-        assert.equal(2, successes);
-      }
-    });
+  
+          fs.fsyncSync(fd);
+          successes++;
+        }
+        return new Promise((resolve, reject) => fs.fdatasync(fd, err => {
+          if (err) {
+            reject(err);
+          } else {
+            successes++;
+            resolve(fd);
+          }          
+        }));
+      }).then((fd:number) => new Promise((resolve, reject) => fs.fsync(fd, err => {
+        if (err) {
+          reject(err);
+        } else {
+          successes++;
+          resolve(true);
+        }        
+      }))).then(() => {
+        if (rootFS.supportsSynch()) {
+          assert.equal(4, successes);
+        } else {
+          assert.equal(2, successes);
+        }
+      })    
   }
 };

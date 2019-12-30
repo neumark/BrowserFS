@@ -6,7 +6,7 @@ import common from '../../../harness/common';
 export default function() {
   if (!fs.getRootFS().isReadOnly()) {
     var join = path.join;
-    var filename = join(common.tmpDir, 'append.txt');
+    var filename = join(common.tmpDir, 'append.txt'), filename2:string, filename3:string;
 
     var currentFileData = 'ABCD';
 
@@ -20,36 +20,41 @@ export default function() {
 
     var ncallbacks = 0;
 
-    // test that empty file will be created and have content added
-    fs.appendFile(filename, s, function(e) {
-      if (e) throw e;
-      ncallbacks++;
-
-      fs.readFile(filename, function(e, buffer) {
-        if (e) throw e;
-        ncallbacks++;
-        assert.equal(Buffer.byteLength(s), buffer.length);
-      });
-    });
-
-    // test that appends data to a non empty file
-    var filename2 = join(common.tmpDir, 'append2.txt');
-    fs.writeFile(filename2, currentFileData, function(err) {
-      if (err) throw err;
-      fs.appendFile(filename2, s, function(e) {
-        if (e) throw e;
-        ncallbacks++;
-
-        fs.readFile(filename2, function(e, buffer) {
+    var testSequence = Promise.resolve(true).then(() => 
+      // test that empty file will be created and have content added
+      new Promise((resolve, reject) => {
+        fs.appendFile(filename, s, function(e) {
           if (e) throw e;
           ncallbacks++;
-          assert.equal(Buffer.byteLength(s) + currentFileData.length, buffer.length);
+  
+          fs.readFile(filename, function(e, buffer) {
+            if (e) throw e;
+            ncallbacks++;
+            assert.equal(Buffer.byteLength(s), buffer.length);
+            resolve(true);
+          });
+        });
+      })    
+    ).then(() => new Promise((resolve, reject) => {
+      // test that appends data to a non empty file
+      filename2 = join(common.tmpDir, 'append2.txt');
+      fs.writeFile(filename2, currentFileData, function(err) {
+        if (err) throw err;
+        fs.appendFile(filename2, s, function(e) {
+          if (e) throw e;
+          ncallbacks++;
+
+          fs.readFile(filename2, function(e, buffer) {
+            if (e) throw e;
+            ncallbacks++;
+            assert.equal(Buffer.byteLength(s) + currentFileData.length, buffer.length);
+            resolve(true);
+          });
         });
       });
-    });
-
+  })).then(() => new Promise((resolve, reject) => {
     // test that appendFile accepts buffers
-    var filename3 = join(common.tmpDir, 'append3.txt');
+    filename3 = join(common.tmpDir, 'append3.txt');
     fs.writeFile(filename3, currentFileData, function(err) {
       if (err) throw err;
       var buf = new Buffer(s, 'utf8');
@@ -62,10 +67,15 @@ export default function() {
           if (e) throw e;
           ncallbacks++;
           assert.equal(buf.length + currentFileData.length, buffer.length);
+          resolve(true);
         });
       });
     });
-
+  })).then(() => {
+    // BFS: 8->6 due to removing one part of the test.
+    assert.equal(6, ncallbacks,'Should have run 6 callbacks, but actually ran ' + ncallbacks);
+  });
+    
     // test that appendFile accepts numbers.
     /*
 
@@ -99,9 +109,7 @@ export default function() {
     */
 
     process.on('exit', function() {
-      // BFS: 8->6 due to removing one part of the test.
-      assert.equal(6, ncallbacks,
-          'Should have run 6 callbacks, but actually ran ' + ncallbacks);
+      
 
       fs.unlink(filename);
       fs.unlink(filename2);
@@ -109,4 +117,5 @@ export default function() {
       //fs.unlink(filename4);
     });
   }
+  console.debug(testSequence, ncallbacks);
 };

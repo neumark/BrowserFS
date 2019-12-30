@@ -78,27 +78,28 @@ export default function(tests: {
   function generateTest(testName: string, test: () => void, postCb: () => void = () => {}) {
     it(testName, function (done: (e?: any) => void) {
       // Reset the exit callback.
-      process.removeAllListeners('exit');
-      test();
-      waitsFor(() => {
-        return (<any> global).__numWaiting === 0;
-      }, "All callbacks should fire", timeout, (e?: Error) => {
-        if (e) {
-          postCb();
-          done(e);
-        } else {
-          // Run the exit callback, if any.
-          process.exit(0);
-          process.removeAllListeners('exit');
-          waitsFor(() => {
+      process.removeAllListeners('exit');      
+      Promise.resolve(test()).then(() => {
+        waitsFor(() => {
             return (<any> global).__numWaiting === 0;
           }, "All callbacks should fire", timeout, (e?: Error) => {
-            postCb();
-            done(e);
+            if (e) {
+              postCb();
+              done(e);
+            } else {
+              // Run the exit callback, if any.
+              process.exit(0);
+              process.removeAllListeners('exit');
+              waitsFor(() => {
+                return (<any> global).__numWaiting === 0;
+              }, "All callbacks should fire", timeout, (e?: Error) => {
+                postCb();
+                done(e);
+              });
+            }
           });
-        }
+        });
       });
-    });
   }
 
   function generateEmscriptenTest(testName: string, test: (module: any) => void) {

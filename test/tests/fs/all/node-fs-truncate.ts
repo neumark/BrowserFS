@@ -6,8 +6,9 @@ import common from '../../../harness/common';
 export default function() {
   var rootFS = fs.getRootFS();
   if (rootFS.isReadOnly()) {
-    return;
+    return true;
   }
+  var success = 0;
   var tmp = common.tmpDir;
   var filename = path.resolve(tmp, 'truncate-file.txt');
   var data = new Buffer(1024 * 16);
@@ -115,17 +116,22 @@ export default function() {
   }
 
   // async tests
-  var success = 0;
-  testTruncate(function(er: NodeJS.ErrnoException) {
-    if (er) throw er;
-    success++;
-    testFtruncate(function(er: NodeJS.ErrnoException) {
-      if (er) throw er;
-      success++;
-    });
+  var runTestFunc = (testFunc:Function) => new Promise((resolve, reject) => {
+    testFunc(function(er: NodeJS.ErrnoException) {
+      if (er) {
+        console.error(er);
+        reject(er);
+      } else {
+        success++;
+        resolve(true);
+      }
+    })
   });
 
-  process.on('exit', function() {
-    assert.equal(success, 2, 'Exit code mismatch: ' + success + ' != 2');
-  });
+  return runTestFunc(testTruncate)
+    .then(() => runTestFunc(testFtruncate))
+    .then(() => {
+      return assert.equal(success, 2, 'Exit code mismatch: ' + success + ' != 2');      
+    });
+
 };

@@ -32,7 +32,7 @@ if (existsSync(tokenPath)) {
 
 // Use them to authenticate if there are
 if (token) {
-  const client = new Dropbox(token);
+  const client = new Dropbox({...token, fetch});
   client.usersGetCurrentAccount(undefined).then((res) => {
     console.log(`Token authenticates to ${res.name.display_name}'s Dropbox.`);
   }).catch((e) => {
@@ -44,7 +44,7 @@ if (token) {
 }
 
 function authenticate() {
-  const client = new Dropbox({ clientId: CLIENT_ID });
+  const client = new Dropbox({ clientId: CLIENT_ID, fetch});
   const authUrl = client.getAuthenticationUrl("http://localhost:3030/auth");
   const app = express();
   app.use(jsonBodyParser());

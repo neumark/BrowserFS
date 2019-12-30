@@ -19,70 +19,41 @@ export default function() {
 
     var ncallbacks = 0;
 
-    fs.writeFile(filename, s, function(e) {
-      if (e) throw e;
-      ncallbacks++;
-      fs.readFile(filename, function(e, buffer) {
-        if (e) throw e;
-        ncallbacks++;
-        var expected = Buffer.byteLength(s);
-        assert.equal(expected, buffer.length,
-            'Buffer length mismatch for ' + filename + ': expected ' + expected +
-            ', got ' + buffer.length);
-      });
-    });
-
     // test that writeFile accepts buffers
     var filename2 = join(common.tmpDir, 'test2.txt');
     var buf = new Buffer(s, 'utf8');
 
-    fs.writeFile(filename2, buf, function(e) {
-      if (e) throw e;
-      ncallbacks++;
-      fs.readFile(filename2, function(e, buffer) {
-        if (e) throw e;
+    var promiseCall = (fn:Function, args:any[]) => new Promise((resolve, reject) => fn.apply(fs, [...args, (err:any, result:any) => {
+      if (err) {
+        reject(err);
+      } else {
         ncallbacks++;
-        assert.equal(buf.length, buffer.length,
+        resolve(result);
+      }
+    }]));
+
+    return promiseCall(fs.writeFile, [filename, s])
+      .then(() => promiseCall(fs.readFile, [filename]))
+      .then((buffer:Buffer) => {
+        var expected = Buffer.byteLength(s);
+        assert.equal(expected, buffer.length,
+            'Buffer length mismatch for ' + filename + ': expected ' + expected +
+            ', got ' + buffer.length);            
+      })
+      .then(() => promiseCall(fs.writeFile, [filename2, buf]))
+      .then(() => promiseCall(fs.readFile, [filename2]))
+      .then((buffer:Buffer) => {
+          assert.equal(buf.length, buffer.length,
             'Buffer length mismatch for ' + filename2 + ': expected ' +
             buf.length + ', got ' + buffer.length);
+          return true;
+      })
+      .then(() => promiseCall(fs.unlink, [filename]))
+      .then(() => promiseCall(fs.unlink, [filename2]))
+      .then(() => {
+        // was 4, but unlink() calls are also counted now
+        assert.equal(6, ncallbacks, 'Expected 6 callbacks, got ' + ncallbacks);        
       });
-    });
-
-    // BFS: We don't support writing a single byte to the file.
-    /*
-    // test that writeFile accepts numbers.
-    var filename3 = join(common.tmpDir, 'test3.txt');
-    var m = 0600;
-    fs.writeFile(filename3, n, { mode: m }, function(e) {
-      if (e) throw e;
-
-      // windows permissions aren't unix
-      if (process.platform !== 'win32') {
-        fs.stat(filename3,function(err, st) {
-          if (err) throw err;
-          assert.equal(st.mode & 0700, m);
-        });
-      }
-
-      ncallbacks++;
-      common.error('file3 written');
-
-      fs.readFile(filename3, function(e, buffer) {
-        if (e) throw e;
-        common.error('file3 read');
-        ncallbacks++;
-        assert.equal(Buffer.byteLength('' + n), buffer.length);
-      });
-    });*/
-
-
-    process.on('exit', function() {
-      // BFS: 6=>4, since I commented out one part of the test.
-      assert.equal(4, ncallbacks, 'Expected 4 callbacks, got ' + ncallbacks);
-
-      fs.unlink(filename, function(err) { if (err) throw err; });
-      fs.unlink(filename2, function(err) { if (err) throw err; });
-      //fs.unlink(filename3, function(err) { if (err) throw err; });
-    });
   }
+  return true;
 };
