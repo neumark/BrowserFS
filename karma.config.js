@@ -18,7 +18,7 @@ const installedBrowsers = isTravis ? ['Firefox'] : detectBrowsers.getInstalledBr
     }
   });
 
-let dropbox = false;
+let dropbox = true;
 let continuous = false;
 let coverage = false;
 let karmaFiles = [
@@ -52,9 +52,9 @@ module.exports = function(configSetter) {
     logLevel: 'INFO',
     autoWatch: true,
     concurrency: 1,
-    browsers: installedBrowsers,
+    browsers: ['Chrome'], // installedBrowsers,
     captureTimeout: 60000,
-    singleRun: !continuous,
+    singleRun: false, // !continuous,
     urlRoot: '/',
     // Dropbox tests are slow.
     browserNoActivityTimeout: 60000,

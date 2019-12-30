@@ -5,6 +5,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+const FILES = ["Dropbox", "general", "fs", "all"];
+
 function generateRunFile() {
   let tests = '', importsStringified: string, testImports: string[] = [];
   function processDir(dir: string) {
@@ -21,17 +23,20 @@ function generateRunFile() {
           tests += `'${file}': ${name},`;
           break;
         case '.js':
-          let jsModPath = relPath.slice(0, relPath.length - 3).replace(/\\/g, '/');
-          testImports.push(`const ${name}Emscripten = require('${jsModPath}');`);
-          tests += `'${file}': ${name}Emscripten,`;
+          // let jsModPath = relPath.slice(0, relPath.length - 3).replace(/\\/g, '/');
+          // testImports.push(`const ${name}Emscripten = require('${jsModPath}');`);
+          // tests += `'${file}': ${name}Emscripten,`;
           break;
         default:
           break;
         }
       } else {
-        tests += '\'' + file + '\':{';
-        processDir(filePath);
-        tests += '},';
+        console.log(file);
+        if (FILES.includes(file)) {
+            tests += '\'' + file + '\':{';
+            processDir(filePath);
+            tests += '},';
+        }
       }
     });
     // Remove trailing ','.
@@ -45,9 +50,15 @@ function generateRunFile() {
     })
     .map(function(file) {
       var name = file.slice(0, file.length - 11);
-      factoryList.push(name);
-      return `import ${name} from './factories/${file.slice(0, file.length - 3)}';`;
+      if (name === 'dbfs') {
+        factoryList.push(name);
+        return `import ${name} from './factories/${file.slice(0, file.length - 3)}';`;
+      }
+      return "\n";
     }).concat(testImports).join('\n');
+
+  // add empty emscripten
+  tests += ',\'emscripten\':{}';
 
   fs.writeFileSync('test/harness/run.ts',
     Buffer.from(fs.readFileSync('test/harness/run.tstemplate')

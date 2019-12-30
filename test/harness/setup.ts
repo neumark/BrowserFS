@@ -6,7 +6,6 @@ import BFSEmscriptenFS from '../../src/generic/emscripten_fs';
 import assert from './wrapped-assert';
 import loadFixtures from '../fixtures/load_fixtures';
 
-declare var __numWaiting: number;
 declare var __karma__: any;
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
@@ -49,25 +48,25 @@ export default function(tests: {
     // This is used for unit testing.
     // We could use `arguments`, but Function.call/apply is expensive. And we only
     // need to handle 1-3 arguments
-    if (typeof __numWaiting === 'undefined') {
+    if (typeof ((<any>window).__numWaiting === 'undefined')) {
       (<any> global).__numWaiting = 0;
     }
-    __numWaiting++;
+    (<any> global).__numWaiting++;
 
     switch (numArgs) {
       case 1:
         return <any> function(arg1: any) {
-          __numWaiting--;
+          (<any> global).__numWaiting--;
           return cb(arg1);
         };
       case 2:
         return <any> function(arg1: any, arg2: any) {
-          __numWaiting--;
+          (<any> global).__numWaiting--;
           return cb(arg1, arg2);
         };
       case 3:
         return <any> function(arg1: any, arg2: any, arg3: any) {
-          __numWaiting--;
+          (<any> global).__numWaiting--;
           return cb(arg1, arg2, arg3);
         };
       default:
@@ -82,7 +81,7 @@ export default function(tests: {
       process.removeAllListeners('exit');
       test();
       waitsFor(() => {
-        return __numWaiting === 0;
+        return (<any> global).__numWaiting === 0;
       }, "All callbacks should fire", timeout, (e?: Error) => {
         if (e) {
           postCb();
@@ -92,7 +91,7 @@ export default function(tests: {
           process.exit(0);
           process.removeAllListeners('exit');
           waitsFor(() => {
-            return __numWaiting === 0;
+            return (<any> global).__numWaiting === 0;
           }, "All callbacks should fire", timeout, (e?: Error) => {
             postCb();
             done(e);
@@ -169,7 +168,7 @@ export default function(tests: {
   function generateBackendTests(name: string, backend: FileSystem) {
     var testName: string;
     generateTest("Load filesystem", function () {
-      __numWaiting = 0;
+      (<any> global).__numWaiting = 0;
       BrowserFS.initialize(backend);
     });
     generateTest("Load fixtures", loadFixtures);
@@ -196,7 +195,7 @@ export default function(tests: {
       // generate generic non-backend specific tests
       describe('General Tests', (): void => {
         var genericTests = tests.general, testName: string;
-        __numWaiting = 0;
+        (<any> global).__numWaiting = 0;
         for (testName in genericTests) {
           if (genericTests.hasOwnProperty(testName)) {
             // Capture testName in a closure.
