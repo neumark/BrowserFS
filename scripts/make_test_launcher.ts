@@ -5,7 +5,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const FILES = ["Dropbox", "general", "fs", "all"];
+//const CURRENT_BACKEND = "GDrive";
+const CURRENT_BACKEND = "Dropbox";
+
+const FACTORIES = {
+    "Dropbox": 'dbfs',
+    "GDrive": 'gdrivefs'
+}
+
+const FILES = [CURRENT_BACKEND, "general", "fs", "all"];
 
 function generateRunFile() {
   let tests = '', importsStringified: string, testImports: string[] = [];
@@ -50,7 +58,7 @@ function generateRunFile() {
     })
     .map(function(file) {
       var name = file.slice(0, file.length - 11);
-      if (name === 'dbfs') {
+      if (name === FACTORIES[CURRENT_BACKEND]) {
         factoryList.push(name);
         return `import ${name} from './factories/${file.slice(0, file.length - 3)}';`;
       }

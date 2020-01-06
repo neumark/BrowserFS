@@ -13,7 +13,10 @@ const PORT = 8000;
 const REDIRECT_URL = "http://localhost:" + PORT;
 
 // If modifying these scopes, delete token.json.
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/userinfo.profile',
+  'https://www.googleapis.com/auth/userinfo.email'];
 
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
@@ -36,15 +39,34 @@ function authorize(credentials, callback) {
 
   // from: https://github.com/googleapis/google-api-nodejs-client#handling-refresh-tokens
   oAuth2Client.on('tokens', (tokens) => {
-    writeAccessToken(tokens);
+    oAuth2Client.setCredentials(tokens);
+    writeAccessToken(oAuth2Client, tokens);
   });
 
   // Check if we have previously stored a token.
    fs.readFile(fullpath(tokenDir, TOKEN_FILE), (err, token) => {
     if (err) return getAccessToken(oAuth2Client, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));
+    oAuth2Client.setCredentials(JSON.parse(token).token);
     callback(oAuth2Client);
   });
+}
+
+function getUserInfo(oAuth2Client) {
+  // from: https://stackoverflow.com/a/45187328
+  return new Promise((resolve, reject) => google.people('v1').people.get({
+    resourceName: 'people/me',
+    personFields: 'emailAddresses,names',
+    auth: oAuth2Client},
+    (err, response) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({
+          name: response.data.names[0].displayName,
+          email: response.data.emailAddresses[0].value
+        });
+      }      
+    }));
 }
 
 function fullpath(tokenDir, file) {
@@ -82,20 +104,23 @@ function getAccessToken(oAuth2Client, callback) {
   startWebServer(oAuth2Client, authUrl, callback);
 }
 
-function writeAccessToken(token) {
+function writeAccessToken(oAuth2Client, token) {
   // Store the token to disk for later program executions
   const filename = fullpath(tokenDir, TOKEN_FILE);
-  fs.writeFile(filename, JSON.stringify(token), (err) => {
-    if (err) return console.error(err);
-    console.log('Token stored to', filename);
-  });
+  getUserInfo(oAuth2Client).then(
+    (user) => {
+      fs.writeFile(filename, JSON.stringify({user, token}), (err) => {
+        if (err) return console.error(err);
+        console.log('Token stored to', filename);
+      });
+    },
+    console.error);  
 }
 
 function saveAuthCode(code, oAuth2Client, callback) {
     oAuth2Client.getToken(code, (err, token) => {
-      if (err) return console.error('Error retrieving access token', err);
-      console.log("got token", token);
-      oAuth2Client.setCredentials(token);      
+      if (err) return console.error('Error retrieving access token', err);       
+      oAuth2Client.setCredentials(token);     
       callback(oAuth2Client);
     });
   }
@@ -108,7 +133,8 @@ function startWebServer(oAuth2Client, authUrl, callback) {
     const code = parseUrl(req.url, true).query.code
       res.status(200);
       res.send();
-      server.close(() => saveAuthCode(code, oAuth2Client, callback));      
+      saveAuthCode(code, oAuth2Client, callback)
+      server.close(() => process.exit(0));      
   });
 
   server = app.listen(PORT, function() {
@@ -123,6 +149,9 @@ function startWebServer(oAuth2Client, authUrl, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 function listFiles(auth) {
+  getUserInfo(auth).then(
+    (data) => console.log(`Successfully logged in to ${data.name}'s Google Drive.`),
+    console.error);
   const drive = google.drive({version: 'v3', auth});
   drive.files.list({
     pageSize: 10,
@@ -136,7 +165,7 @@ function listFiles(auth) {
         console.log(`${file.name} (${file.id})`);
       });
     } else {
-      console.log('No files found.');
+      console.log('No files found which browserfs has access to.');
     }
   });
 }
