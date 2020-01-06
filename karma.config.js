@@ -18,7 +18,7 @@ const installedBrowsers = isTravis ? ['Firefox'] : detectBrowsers.getInstalledBr
     }
   });
 
-let dropbox = true;
+let dropbox = false;
 let gdrive = true;
 let continuous = false;
 let coverage = false;

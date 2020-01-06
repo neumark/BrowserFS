@@ -1,12 +1,12 @@
 import PreloadFile from '../generic/preload_file';
 import {BaseFileSystem, FileSystem, BFSOneArgCallback, BFSCallback, FileSystemOptions} from '../core/file_system';
 import {FileFlag} from '../core/file_flag';
-import {default as Stats} from '../core/node_fs_stats';
+import {default as Stats, FileType} from '../core/node_fs_stats';
 //import {ApiError, ErrorCode} from '../core/api_error';
 import {File} from '../core/file';
 // import {arrayBuffer2Buffer, buffer2ArrayBuffer} from '../core/util';
 import {drive_v3} from 'googleapis';
-// import setImmediate from '../generic/setImmediate';
+import setImmediate from '../generic/setImmediate';
 // import {dirname} from 'path';
 
 
@@ -92,6 +92,17 @@ export default class GDriveFileSystem extends BaseFileSystem implements FileSyst
   public empty(mainCb: BFSOneArgCallback): void {    
     console.log("TODO: stub(GDrive.empty)", this._client);
     mainCb();    
+  }
+
+  public stat(path: string, isLstat: boolean, cb: BFSCallback<Stats>): void {
+    console.log("TODO: stub(GDrive.stat)", path);
+    if (path === '/') {
+      // Dropbox doesn't support querying the root directory.
+      setImmediate(function() {
+        cb(null, new Stats(FileType.DIRECTORY, 4096));
+      });
+      return;
+    }
   }
   
 }
