@@ -1,3 +1,5 @@
+/// <reference types="typescript" />
+
 /**
  * Grab bag of utility functions used across the code.
  */

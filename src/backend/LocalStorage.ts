@@ -46,7 +46,7 @@ export class LocalStorageStore implements SyncKeyValueStore, SimpleSyncStore {
     try {
       const data = global.localStorage.getItem(key);
       if (data !== null) {
-        return Buffer.from(data, binaryEncoding);
+        return Buffer.from(data, <BufferEncoding>binaryEncoding);
       }
     } catch (e) {
       // Do nothing.

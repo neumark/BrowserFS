@@ -18,7 +18,7 @@ const installedBrowsers = isTravis ? ['Firefox'] : detectBrowsers.getInstalledBr
     }
   });
 
-let dropbox = false;
+let dropbox = true;
 let gdrive = true;
 let continuous = false;
 let coverage = false;
@@ -43,7 +43,7 @@ if (dropbox) {
 
 if (gdrive) {
   karmaFiles.unshift('test/tests/fs/GDrive/load_gapi.js');
-  execSync(`node ${path.resolve(__dirname, './build/scripts/get_gdrive_credentials.js')} ${path.resolve(__dirname, './test/fixtures/gdrive/')}`, {
+  execSync(`node ${path.resolve(__dirname, './scripts/get_gdrive_credentials.js')} ${path.resolve(__dirname, './test/fixtures/gdrive/')}`, {
     stdio: 'inherit'
   });
 

@@ -197,7 +197,7 @@ export default function() {
   // invalid encoding for Buffer.write
   caught_error = null;
   try {
-    b.write('test string', 0, 5, 'invalid');
+    b.write('test string', 0, 5, <any>'invalid');
   } catch (err) {
     caught_error = err;
   }
@@ -363,11 +363,11 @@ export default function() {
   equalCheck(f, new Buffer([252, 98, 101, 114]));
 
   ['ucs2', 'ucs-2', 'utf16le', 'utf-16le'].forEach(function(encoding) {
-    var f = new Buffer('über', encoding);
+    var f = new Buffer('über', <BufferEncoding>encoding);
     assert.equal(8, f.length, 'f.length: ' + f.length + ' (should be 8)');
     equalCheck(f, new Buffer([252, 0, 98, 0, 101, 0, 114, 0]));
 
-    var f = new Buffer('привет', encoding);
+    var f = new Buffer('привет', <BufferEncoding>encoding);
     assert.equal(12, f.length, 'f.length: ' + f.length + ' (should be 12)');
     equalCheck(f, new Buffer([63, 4, 64, 4, 56, 4, 50, 4, 53, 4, 66, 4]));
     assert.equal(f.toString(encoding), 'привет');
@@ -379,7 +379,7 @@ export default function() {
     equalCheck(f, new Buffer([0x42, 0x30, 0x44, 0x30, 0x00]));
   });
 
-  var f = new Buffer('\uD83D\uDC4D', 'utf-16le'); // THUMBS UP SIGN (U+1F44D)
+  var f = new Buffer('\uD83D\uDC4D', <BufferEncoding>'utf-16le'); // THUMBS UP SIGN (U+1F44D)
   assert.equal(4, f.length, 'f.length: ' + f.length + ' (should be 4)');
   equalCheck(f, new Buffer('3DD84DDC', 'hex'));
 
@@ -745,7 +745,7 @@ export default function() {
 
   ['ucs2', 'ucs-2', 'utf16le', 'utf-16le'].forEach(function(encoding) {
     buf.fill(0xFF);
-    written = buf.write('abcd', 0, 2, encoding);
+    written = buf.write('abcd', 0, 2, <BufferEncoding>encoding);
     assert.equal(written, 2);
     assert.equal(buf[0], 0x61);
     assert.equal(buf[1], 0x00);
@@ -764,7 +764,7 @@ export default function() {
   // test unmatched surrogates not producing invalid utf8 output
   // ef bf bd = utf-8 representation of unicode replacement character
   // see https://codereview.chromium.org/121173009/
-  buf = new Buffer('ab\ud800cd', 'utf8');
+  buf = new Buffer('ab\ud800cd', <BufferEncoding>'utf8');
   assert.equal(buf[0], 0x61);
   assert.equal(buf[1], 0x62);
   assert.equal(buf[2], 0xef);
@@ -796,7 +796,7 @@ export default function() {
 
   // Ensure that the length argument is respected.
   'ascii utf8 hex base64 binary'.split(' ').forEach(function(enc) {
-    assert.equal(new Buffer(1).write('aaaaaa', 0, 1, enc), 1);
+    assert.equal(new Buffer(1).write('aaaaaa', 0, 1, <BufferEncoding>enc), 1);
   });
 
   // Regression test, guard against buffer overrun in the base64 decoder.
@@ -1088,7 +1088,7 @@ export default function() {
 
   // Regression test for #5482: should throw but not assert in C++ land.
   assert.throws(function() {
-    new Buffer('', 'buffer');
+    new Buffer('', <BufferEncoding>'buffer');
   }, TypeError);
 
   // Regression test for #6111. Constructing a buffer from another buffer
